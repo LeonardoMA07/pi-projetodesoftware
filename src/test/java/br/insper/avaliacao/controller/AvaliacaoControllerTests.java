@@ -18,7 +18,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -51,11 +50,11 @@ public class AvaliacaoControllerTests {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private AvaliacaoRepository cursoRepository;
+    private AvaliacaoRepository avaliacaoRepository;
 
     @BeforeEach
     public void limparBase() {
-        cursoRepository.deleteAll();
+        avaliacaoRepository.deleteAll();
     }
 
     private AvaliacaoDto criarDto(String autor) {
@@ -66,25 +65,25 @@ public class AvaliacaoControllerTests {
         return dto;
     }
 
-    private Avaliacao postCurso(String nome) throws Exception {
+    private Avaliacao postAvaliacao(String autor) throws Exception {
         MvcResult result = mockMvc.perform(
-                        post("/cursos")
+                        post("/avaliacao")
                                 .contentType("application/json")
-                                .content(objectMapper.writeValueAsString(criarDto(nome))))
+                                .content(objectMapper.writeValueAsString(criarDto(autor))))
                 .andExpect(status().isCreated())
                 .andReturn();
 
         return objectMapper.readValue(result.getResponse().getContentAsString(), Avaliacao.class);
     }
 
-    // ---------- POST /cursos ----------
+    // ---------- POST /avaliacao ----------
 
     @Test
     public void test_shouldCreateAvaliacao() throws Exception {
 
         // chamada
         MvcResult result = mockMvc.perform(
-                        post("/cursos")
+                        post("/avaliacao")
                                 .contentType("application/json")
                                 .content(objectMapper.writeValueAsString(criarDto("Java Basico"))))
                 .andExpect(status().isCreated())
@@ -94,29 +93,97 @@ public class AvaliacaoControllerTests {
         Avaliacao avaliacao = objectMapper.readValue(result.getResponse().getContentAsString(), Avaliacao.class);
         Assertions.assertNotNull(avaliacao.getId());
         Assertions.assertEquals("Java Basico", avaliacao.getAutor());
-        Assertions.assertEquals("Eduardo", avaliacao.getDescricao());
+        Assertions.assertEquals("Descricao de Java Basico", avaliacao.getConteudo());
         Assertions.assertEquals(3, avaliacao.getNota());
     }
 
-    // ---------- GET /cursos ----------
+    // ---------- GET /avaliacao ----------
 
     @Test
-    public void test_shouldListAllCursos() throws Exception {
+    public void test_shouldListAllAvaliacoes() throws Exception {
 
-        postCurso("Java Basico");
-        postCurso("Python Avancado");
+        postAvaliacao("Java Basico");
+        postAvaliacao("Python Avancado");
 
         // chamada
-        MvcResult result = mockMvc.perform(get("/cursos"))
+        MvcResult result = mockMvc.perform(get("/avaliacao"))
                 .andExpect(status().isOk())
                 .andReturn();
 
         // asserts
-        List<Avaliacao> avaliacaos = objectMapper.readValue(
+        List<Avaliacao> avaliacoes = objectMapper.readValue(
                 result.getResponse().getContentAsString(),
                 objectMapper.getTypeFactory().constructCollectionType(List.class, Avaliacao.class));
 
-        Assertions.assertEquals(2, avaliacaos.size());
+        Assertions.assertEquals(2, avaliacoes.size());
+    }
+
+    @Test
+    public void test_shouldFilterAvaliacoesByAutor() throws Exception {
+
+        postAvaliacao("Java Basico");
+        postAvaliacao("Python Avancado");
+
+        // chamada
+        MvcResult result = mockMvc.perform(get("/avaliacao").param("autor", "java"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // asserts
+        List<Avaliacao> avaliacoes = objectMapper.readValue(
+                result.getResponse().getContentAsString(),
+                objectMapper.getTypeFactory().constructCollectionType(List.class, Avaliacao.class));
+
+        Assertions.assertEquals(1, avaliacoes.size());
+        Assertions.assertEquals("Java Basico", avaliacoes.get(0).getAutor());
+    }
+
+    // ---------- GET /avaliacao/{id} ----------
+
+    @Test
+    public void test_shouldFindAvaliacaoById() throws Exception {
+
+        Avaliacao criada = postAvaliacao("Java Basico");
+
+        // chamada
+        MvcResult result = mockMvc.perform(get("/avaliacao/" + criada.getId()))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // asserts
+        Avaliacao avaliacao = objectMapper.readValue(result.getResponse().getContentAsString(), Avaliacao.class);
+        Assertions.assertEquals(criada.getId(), avaliacao.getId());
+        Assertions.assertEquals("Java Basico", avaliacao.getAutor());
+    }
+
+    @Test
+    public void test_shouldReturn404WhenAvaliacaoNotFound() throws Exception {
+
+        mockMvc.perform(get("/avaliacao/9999"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ---------- DELETE /avaliacao/{id} ----------
+
+    @Test
+    public void test_shouldDeleteAvaliacao() throws Exception {
+
+        Avaliacao criada = postAvaliacao("Java Basico");
+
+        // chamada
+        mockMvc.perform(delete("/avaliacao/" + criada.getId()))
+                .andExpect(status().isNoContent());
+
+        // asserts
+        mockMvc.perform(get("/avaliacao/" + criada.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void test_shouldReturn404WhenDeleteNotFound() throws Exception {
+
+        mockMvc.perform(delete("/avaliacao/9999"))
+                .andExpect(status().isNotFound());
     }
 
 }

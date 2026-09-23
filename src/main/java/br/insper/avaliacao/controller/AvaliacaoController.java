@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/cursos")
+@RequestMapping("/avaliacao")
 public class AvaliacaoController {
 
 	@Autowired
@@ -22,11 +22,17 @@ public class AvaliacaoController {
 		return avaliacaoService.criar(dto);
 	}
 
-	// GET /cursos            -> todos os cursos nao deletados
-	// GET /cursos?nome=Java  -> apenas os que o nome comeca com "Java"
+	// GET /avaliacao              -> todas as avaliacoes
+	// GET /avaliacao?autor=Maria  -> apenas as que o autor comeca com "Maria"
 	@GetMapping
-	public List<Avaliacao> listar(@RequestParam(required = false) String nome) {
+	public List<Avaliacao> listar(@RequestParam(required = false) String autor) {
 		return avaliacaoService.listar(autor);
+	}
+
+	// GET /avaliacao/{id} -> uma avaliacao; 404 se nao existir
+	@GetMapping("/{id}")
+	public Avaliacao buscarPorId(@PathVariable Long id) {
+		return avaliacaoService.buscarPorId(id);
 	}
 
 	@DeleteMapping("/{id}")

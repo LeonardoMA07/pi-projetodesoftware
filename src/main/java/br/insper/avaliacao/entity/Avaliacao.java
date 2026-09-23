@@ -10,11 +10,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "cursos")
+@Table(name = "avaliacoes")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Avaliacao
+public class Avaliacao{
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,8 +27,6 @@ public class Avaliacao
 	private String conteudo;
 
 	@Column
-	@Min(value=1, message = "O valor mínimo permitido é 1")
-	@Max(value=5, message= "O valor máximo permitido é 5")
 	private int nota;
 
 	@Column
@@ -36,9 +34,9 @@ public class Avaliacao
 
 	public static Avaliacao fromDto(AvaliacaoDto dto) {
 		Avaliacao avaliacao = new Avaliacao();
-		avaliacao.setAutor(dto.getNome());
-		avaliacao.setConteudo(dto.getDescricao());
-		avaliacao.setNota(dto.getPreco());
+		avaliacao.setAutor(dto.getAutor());
+		avaliacao.setConteudo(dto.getConteudo());
+		avaliacao.setNota(dto.getNota());
 		avaliacao.setDataAvaliacao(LocalDate.now());
 		return avaliacao;
 	}

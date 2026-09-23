@@ -7,13 +7,11 @@ import br.insper.avaliacao.repository.AvaliacaoRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +23,7 @@ public class AvaliacaoServiceTests {
     private AvaliacaoService avaliacaoService;
 
     @Mock
-    private AvaliacaoRepository cursoRepository;
+    private AvaliacaoRepository avaliacaoRepository;
 
     private AvaliacaoDto criarDto() {
         AvaliacaoDto dto = new AvaliacaoDto();
@@ -42,7 +40,7 @@ public class AvaliacaoServiceTests {
         Avaliacao avaliacao = Avaliacao.fromDto(dto);
 
         // mocks
-        Mockito.when(cursoRepository.save(Mockito.any()))
+        Mockito.when(avaliacaoRepository.save(Mockito.any()))
                 .thenReturn(avaliacao);
 
         // chamada
@@ -50,27 +48,105 @@ public class AvaliacaoServiceTests {
 
         // asserts
         Assertions.assertEquals("Java Basico", response.getAutor());
-        Assertions.assertEquals("Eduardo", response.getConteudo());
+        Assertions.assertEquals("Curso introdutorio de Java", response.getConteudo());
         Assertions.assertEquals(3, response.getNota());
-        Assertions.assertNotNull(response.getDataCriacao());
+        Assertions.assertNotNull(response.getDataAvaliacao());
     }
 
     @Test
-    public void test_shouldReturnAllAvaliacaosWhenNomeIsNull() {
+    public void test_shouldReturnAllAvaliacoesWhenAutorIsNull() {
 
-        List<Avaliacao> avaliacaos = new ArrayList<>();
-        avaliacaos.add(new Avaliacao());
-        avaliacaos.add(new Avaliacao());
+        List<Avaliacao> avaliacoes = new ArrayList<>();
+        avaliacoes.add(new Avaliacao());
+        avaliacoes.add(new Avaliacao());
 
         // mocks
-        Mockito.when(cursoRepository.findByDeletadoFalse())
-                .thenReturn(avaliacaos);
+        Mockito.when(avaliacaoRepository.findAll())
+                .thenReturn(avaliacoes);
 
         // chamada
         List<Avaliacao> response = avaliacaoService.listar(null);
 
         // asserts
         Assertions.assertEquals(2, response.size());
-        Mockito.verify(cursoRepository, Mockito.times(1)).findAll();
+        Mockito.verify(avaliacaoRepository, Mockito.times(1)).findAll();
+    }
+
+    @Test
+    public void test_shouldFilterByAutorWhenAutorIsInformed() {
+
+        List<Avaliacao> avaliacoes = new ArrayList<>();
+        avaliacoes.add(new Avaliacao());
+
+        // mocks
+        Mockito.when(avaliacaoRepository.findByAutorStartingWithIgnoreCase("Java"))
+                .thenReturn(avaliacoes);
+
+        // chamada
+        List<Avaliacao> response = avaliacaoService.listar("Java");
+
+        // asserts
+        Assertions.assertEquals(1, response.size());
+        Mockito.verify(avaliacaoRepository, Mockito.never()).findAll();
+    }
+
+    @Test
+    public void test_shouldReturnAvaliacaoWhenCallBuscarPorId() {
+
+        Avaliacao avaliacao = Avaliacao.fromDto(criarDto());
+        avaliacao.setId(1L);
+
+        // mocks
+        Mockito.when(avaliacaoRepository.findById(1L))
+                .thenReturn(Optional.of(avaliacao));
+
+        // chamada
+        Avaliacao response = avaliacaoService.buscarPorId(1L);
+
+        // asserts
+        Assertions.assertEquals(1L, response.getId());
+        Assertions.assertEquals("Java Basico", response.getAutor());
+    }
+
+    @Test
+    public void test_shouldThrowExceptionWhenBuscarPorIdNotFound() {
+
+        // mocks
+        Mockito.when(avaliacaoRepository.findById(99L))
+                .thenReturn(Optional.empty());
+
+        // chamada + assert
+        Assertions.assertThrows(AvaliacaoNaoEncontradaException.class,
+                () -> avaliacaoService.buscarPorId(99L));
+    }
+
+    @Test
+    public void test_shouldDeleteAvaliacaoWhenCallDeletar() {
+
+        Avaliacao avaliacao = Avaliacao.fromDto(criarDto());
+        avaliacao.setId(1L);
+
+        // mocks
+        Mockito.when(avaliacaoRepository.findById(1L))
+                .thenReturn(Optional.of(avaliacao));
+
+        // chamada
+        avaliacaoService.deletar(1L);
+
+        // asserts
+        Mockito.verify(avaliacaoRepository, Mockito.times(1)).delete(avaliacao);
+    }
+
+    @Test
+    public void test_shouldThrowExceptionWhenDeletarNotFound() {
+
+        // mocks
+        Mockito.when(avaliacaoRepository.findById(99L))
+                .thenReturn(Optional.empty());
+
+        // chamada + assert
+        Assertions.assertThrows(AvaliacaoNaoEncontradaException.class,
+                () -> avaliacaoService.deletar(99L));
+        Mockito.verify(avaliacaoRepository, Mockito.never()).delete(Mockito.any());
     }
 }

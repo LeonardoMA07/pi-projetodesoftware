@@ -13,25 +13,28 @@ import java.util.List;
 public class AvaliacaoService {
 
 	@Autowired
-	private AvaliacaoRepository cursoRepository;
+	private AvaliacaoRepository avaliacaoRepository;
 
 	public Avaliacao criar(AvaliacaoDto dto) {
 		Avaliacao avaliacao = Avaliacao.fromDto(dto);
-		return cursoRepository.save(avaliacao);
+		return avaliacaoRepository.save(avaliacao);
 	}
 
-	public List<Avaliacao> listar(String nome) {
-		if (nome != null && !nome.isBlank()) {
-			return cursoRepository.findByNomeStartingWithIgnoreCaseAndDeletadoFalse(nome);
+	public List<Avaliacao> listar(String autor) {
+		if (autor != null && !autor.isBlank()) {
+			return avaliacaoRepository.findByAutorStartingWithIgnoreCase(autor);
 		}
-		return cursoRepository.findByDeletadoFalse();
+		return avaliacaoRepository.findAll();
+	}
+
+	public Avaliacao buscarPorId(Long id) {
+		return avaliacaoRepository
+				.findById(id)
+				.orElseThrow(() -> new AvaliacaoNaoEncontradaException("Avaliacao com ID " + id + " nao encontrada"));
 	}
 
 	public void deletar(Long id) {
-		Avaliacao avaliacao = cursoRepository
-				.findById(id)
-				.orElseThrow(() -> new AvaliacaoNaoEncontradaException("Avaliacao com ID " + id + " nao encontrada"));
-
-		cursoRepository.delete(avaliacao);
+		Avaliacao avaliacao = buscarPorId(id);
+		avaliacaoRepository.delete(avaliacao);
 	}
 }
