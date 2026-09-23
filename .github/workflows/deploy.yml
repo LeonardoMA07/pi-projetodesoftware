@@ -53,7 +53,7 @@ jobs:
             docker stop curso || true
             docker rm --force curso || true
             docker pull $IMAGE
-            docker run -d -p 8080:8080 --name curso \
+            docker run -d -p 8080:8080 --name curso --network curso-net \
               -e DB_HOST="$DB_HOST" \
               -e DB_PORT="$DB_PORT" \
               -e DB_NAME="$DB_NAME" \
