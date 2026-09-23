@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>br.insper</groupId>
-	<artifactId>curso</artifactId>
+	<artifactId>avaliacao</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>curso</name>
-	<description>API de cursos online</description>
+	<name>avaliacao</name>
+	<description>API de avaliacaos online</description>
 
 	<properties>
 		<java.version>25</java.version>

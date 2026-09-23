@@ -6,10 +6,10 @@ API REST em Java + Spring Boot com PostgreSQL, deploy automático na AWS via Git
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/cursos` | Lista todos os cursos **não deletados** |
-| `GET` | `/cursos?nome=Java` | Mesma coisa, filtrando por nome que **começa com** "Java" |
-| `POST` | `/cursos` | Cria um curso (retorna `201 Created`) |
-| `DELETE` | `/cursos/{id}` | Deleção **lógica** (retorna `204 No Content`, ou `404` se não existir) |
+| `GET` | `/avaliacaos` | Lista todos os avaliacaos **não deletados** |
+| `GET` | `/avaliacaos?nome=Java` | Mesma coisa, filtrando por nome que **começa com** "Java" |
+| `POST` | `/avaliacaos` | Cria um avaliacao (retorna `201 Created`) |
+| `DELETE` | `/avaliacaos/{id}` | Deleção **lógica** (retorna `204 No Content`, ou `404` se não existir) |
 
 Exemplo de body do POST:
 
@@ -34,7 +34,7 @@ Este é o roteiro na ordem em que se deve fazer na prova.
 Use o [Spring Initializr](https://start.spring.io) com:
 
 - **Project:** Maven · **Language:** Java · **Spring Boot:** 4.1.0
-- **Group:** `br.insper` · **Artifact:** `curso` · **Java:** 25
+- **Group:** `br.insper` · **Artifact:** `avaliacao` · **Java:** 25
 - **Dependencies:** Spring Web, Spring Data JPA, PostgreSQL Driver, Lombok
 
 Depois adicione no `pom.xml` o que o Initializr **não** traz (ver arquivo neste repo):
@@ -47,7 +47,7 @@ Depois adicione no `pom.xml` o que o Initializr **não** traz (ver arquivo neste
 ## Passo 2 — Estrutura de pastas
 
 ```
-src/main/java/br/insper/curso/
+src/main/java/br/insper/avaliacao/
 ├── CursoApplication.java
 ├── controller/CursoController.java
 ├── dto/CursoDto.java
@@ -56,7 +56,7 @@ src/main/java/br/insper/curso/
 ├── repository/CursoRepository.java
 └── service/CursoService.java
 
-src/test/java/br/insper/curso/
+src/test/java/br/insper/avaliacao/
 ├── controller/CursoControllerTests.java   (integração, Testcontainers)
 └── service/CursoServiceTests.java         (unitário, Mockito, 100%)
 ```
@@ -71,7 +71,7 @@ private Boolean deletado;
 ```
 
 - No `fromDto()` ele nasce `false`.
-- O `DELETE` **não** chama `deleteById`. Ele busca o curso, faz `setDeletado(true)` e salva.
+- O `DELETE` **não** chama `deleteById`. Ele busca o avaliacao, faz `setDeletado(true)` e salva.
 - O `GET` **nunca** consulta `findAll()`. Sempre filtra por `deletado = false`.
 
 ## Passo 4 — O repository (é aqui que mora a mágica)
@@ -109,10 +109,10 @@ O `if` gera **dois branches** — precisa de teste para cada um, senão não fec
 O `deletar` lança exception quando não acha:
 
 ```java
-Curso curso = cursoRepository.findById(id)
+Curso avaliacao = cursoRepository.findById(id)
     .orElseThrow(() -> new CursoNaoEncontradoException("Curso com ID " + id + " nao encontrado"));
-curso.setDeletado(true);
-cursoRepository.save(curso);
+avaliacao.setDeletado(true);
+cursoRepository.save(avaliacao);
 ```
 
 A exception tem `@ResponseStatus(HttpStatus.NOT_FOUND)` — assim o Spring devolve 404 sozinho, sem precisar de `@ControllerAdvice`.
@@ -141,24 +141,24 @@ docker compose up -d
 Ou sem compose, em um comando só:
 
 ```bash
-docker run --name curso-postgres -e POSTGRES_DB=cursodb -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15-alpine
+docker run --name avaliacao-postgres -e POSTGRES_DB=cursodb -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15-alpine
 ```
 
 Comandos úteis:
 
 ```bash
 docker ps                                   # ver se está rodando
-docker logs curso-postgres                  # ver logs
-docker exec -it curso-postgres psql -U postgres -d cursodb   # entrar no psql
-docker stop curso-postgres                  # parar
-docker rm curso-postgres                    # remover
+docker logs avaliacao-postgres                  # ver logs
+docker exec -it avaliacao-postgres psql -U postgres -d cursodb   # entrar no psql
+docker stop avaliacao-postgres                  # parar
+docker rm avaliacao-postgres                    # remover
 ```
 
 Dentro do `psql`, para conferir se a deleção é mesmo lógica:
 
 ```sql
 \dt                          -- lista as tabelas
-SELECT * FROM cursos;        -- o curso deletado CONTINUA aqui, com deletado = true
+SELECT * FROM avaliacaos;        -- o avaliacao deletado CONTINUA aqui, com deletado = true
 ```
 
 ### 7.2 — Rodar a aplicação local
@@ -172,7 +172,7 @@ spring.datasource.password=${DB_PASSWORD}
 spring.jpa.hibernate.ddl-auto=update
 ```
 
-`ddl-auto=update` faz o Hibernate criar a tabela `cursos` sozinho — não precisa escrever DDL.
+`ddl-auto=update` faz o Hibernate criar a tabela `avaliacaos` sozinho — não precisa escrever DDL.
 
 PowerShell:
 
@@ -200,7 +200,7 @@ sudo apt update && sudo apt install -y docker.io
 sudo usermod -aG docker ubuntu && newgrp docker
 
 # subir o postgres
-docker run --name curso-postgres \
+docker run --name avaliacao-postgres \
   -e POSTGRES_DB=cursodb \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=UMA_SENHA_FORTE \
@@ -225,17 +225,17 @@ No **Security Group** da EC2 libere as portas de entrada:
 > **A solução é uma rede Docker dedicada.** Na VM, uma vez:
 >
 > ```bash
-> docker network create curso-net
-> docker network connect curso-net curso-postgres      # o container do banco
+> docker network create avaliacao-net
+> docker network connect avaliacao-net avaliacao-postgres      # o container do banco
 > ```
 >
-> E no `docker run` da aplicação (no `deploy.yml`), acrescente `--network curso-net`.
+> E no `docker run` da aplicação (no `deploy.yml`), acrescente `--network avaliacao-net`.
 > Aí o `DB_HOST` passa a ser **o nome do container do Postgres**, que a rede Docker resolve como DNS.
 >
 > | Valor de `DB_HOST` | Resultado |
 > |---|---|
 > | `172.31.7.191` (IP privado) | ❌ timeout |
-> | `curso-postgres` (nome do container) | ✅ conecta |
+> | `avaliacao-postgres` (nome do container) | ✅ conecta |
 
 ## Passo 8 — Secrets e variáveis no GitHub
 
@@ -346,18 +346,18 @@ O enunciado pede que **uma das rotas** seja criada via PR, para o pipeline de te
 ```bash
 # 1) primeiro commit na main, SEM uma das rotas (ex.: sem o DELETE)
 git add .
-git commit -m "feat: API de cursos com GET e POST"
+git commit -m "feat: API de avaliacaos com GET e POST"
 git branch -M main
 git push -u origin main
 
 # 2) cria a branch da rota que faltou
-git checkout -b feature/delete-curso
+git checkout -b feature/delete-avaliacao
 
 # ... implementa o DELETE (controller + service + teste) ...
 
 git add .
-git commit -m "feat: adiciona rota DELETE /cursos/{id} com delecao logica"
-git push -u origin feature/delete-curso
+git commit -m "feat: adiciona rota DELETE /avaliacaos/{id} com delecao logica"
+git push -u origin feature/delete-avaliacao
 ```
 
 Depois abra o PR no GitHub (`Compare & pull request`), espere o workflow **Testes (Pull Request)** ficar verde, e faça o merge. O merge na `main` dispara o **deploy** automaticamente.
@@ -383,21 +383,21 @@ adicionar a rota sem o teste dela deixa o PR vermelho.
 
 ```bash
 # criar
-curl -X POST http://localhost:8080/cursos \
+curl -X POST http://localhost:8080/avaliacaos \
   -H "Content-Type: application/json" \
   -d '{"nome":"Java Basico","descricao":"Intro","instrutor":"Eduardo","cargaHoraria":40,"preco":500}'
 
 # listar
-curl http://localhost:8080/cursos
+curl http://localhost:8080/avaliacaos
 
 # filtrar
-curl "http://localhost:8080/cursos?nome=Java"
+curl "http://localhost:8080/avaliacaos?nome=Java"
 
 # deletar
-curl -X DELETE http://localhost:8080/cursos/1
+curl -X DELETE http://localhost:8080/avaliacaos/1
 
-# listar de novo -> o curso deletado sumiu, mas ainda está no banco
-curl http://localhost:8080/cursos
+# listar de novo -> o avaliacao deletado sumiu, mas ainda está no banco
+curl http://localhost:8080/avaliacaos
 ```
 
 ---
@@ -445,7 +445,7 @@ estratégia.
 
 | Sintoma | Causa provável |
 |---|---|
-| Deploy verde mas a API não responde | o `docker run -d` sempre passa; veja `docker logs curso` |
+| Deploy verde mas a API não responde | o `docker run -d` sempre passa; veja `docker logs avaliacao` |
 | `Connect timed out` no banco | `DB_HOST` com IP em vez do nome do container (ver Passo 7.3) |
 | `Connection refused` no banco | container do Postgres não está de pé |
 | `password authentication failed` | senha do secret ≠ senha do `docker run` do Postgres |
@@ -459,21 +459,21 @@ estratégia.
 
 ```bash
 docker ps                      # app e banco estão "Up"?
-docker logs curso --tail 40    # por que a app morreu
-curl http://localhost:8080/cursos
-docker exec -it curso-postgres psql -U postgres -d cursodb -c "\dt"
+docker logs avaliacao --tail 40    # por que a app morreu
+curl http://localhost:8080/avaliacaos
+docker exec -it avaliacao-postgres psql -U postgres -d cursodb -c "\dt"
 ```
 
-Se o `\dt` mostra a tabela `cursos`, o Hibernate conectou — a aplicação achou o banco.
+Se o `\dt` mostra a tabela `avaliacaos`, o Hibernate conectou — a aplicação achou o banco.
 
 ---
 
 ## Checklist final da prova
 
-- [ ] `GET /cursos` não retorna deletados
-- [ ] `GET /cursos?nome=X` filtra com `StartingWith`
-- [ ] `POST /cursos` cria e retorna 201
-- [ ] `DELETE /cursos/{id}` só marca a flag (nada de `deleteById`)
+- [ ] `GET /avaliacaos` não retorna deletados
+- [ ] `GET /avaliacaos?nome=X` filtra com `StartingWith`
+- [ ] `POST /avaliacaos` cria e retorna 201
+- [ ] `DELETE /avaliacaos/{id}` só marca a flag (nada de `deleteById`)
 - [ ] Postgres rodando na AWS e conectado
 - [ ] Nenhuma senha/IP escrito no código ou no YAML
 - [ ] Secrets e variables cadastrados no GitHub
