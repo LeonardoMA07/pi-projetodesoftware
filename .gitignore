@@ -32,3 +32,8 @@ build/
 
 ### Env ###
 .env
+
+### Chaves e credenciais (nunca commitar) ###
+*.pem
+*.key
+*.ppk
